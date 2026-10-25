@@ -1,0 +1,336 @@
+# MITS Property Marketing Data Model
+
+## Property-Marketing Conceptual Approach
+
+All existing mechanisms for specifying fees, charges, deposits, concessions, and costs (collectively referred to as **charges**) are replaced with a single, consistent, and comprehensive approach. This means removing the existing `fee` and `pricing` elements within property, floorplan, unit, and policy.
+
+The new approach includes:
+
+- A top-level **charge classification** that will:
+  - Classify what each charge relates to in one common, industry-wide class list, while allowing stakeholders to retain their (more detailed) charge coding structures.
+  - Provide one way that charges can be grouped for presentation to customers.
+- A new model for **charge offers** that will:
+  - Provide other charge characteristics that allow alternative groupings for display, if and when required (e.g. show all deposits).
+  - Contain enough information to calculate price.
+
+---
+
+## Charge Offer Structure
+
+This describes how the objects nest and relate when transmitted in XML.
+
+MITS assumes a hierarchy of levels for the structure of each multifamily asset in the following order for highest to lowest in the hierarchy
+  - `<Property>`
+  - `<Phase>`
+  - `<Building>`
+  - `<Floorplan>`
+  - `<ILS_Unit>`
+
+- **Each MITS hierarchy level contains its own `ChargeOfferClasses` list of charges.** The `[ChargeOfferClasses]` list appears at each of:
+  
+- **`ChargeOfferClasses` List** contains one or more **`ChargeOfferClass` Objects**.
+  - Each `ChargeOfferClass` object contains a Class ID plus attributes of the class, such as the total amount of monthly charges in the class.
+  - A `ChargeOfferClass` is a standard type of charge defined across the industry that internally unique operator charge codes are mapped to in XML (e.g. all parking-type charges mapped to the `PARK` ChargeOfferClass).
+  - Each `ChargeOfferClass` contains a **`[ChargeOfferItems]` list**, which can contain one or more items.
+- **`ChargeOfferItems` List** contains one or more **`ChargeOfferItem` Objects**.
+  - Each `ChargeOfferItem` is a self-contained object storing all information and attributes about the charge required to describe and calculate the charge in a consistent way.
+  - All `ChargeOfferItems` use the same standard method for calculating the charge to ensure consistent calculation and display of charges, including rents, fees, deposits, concessions, etc.
+- **`<ChargeOfferItem>`** holds:
+  - Internal Charge (Code, Name, Description)
+  - Offer Amounts using standard calculation attributes
+  - Item-specific attributes such as parking type and limits
+  - The `ChargeOfferItem` definition can be used to describe rents with multiple lease term offers; it allows flexibility to offer similarly varied term-length offers for other charges, such as storage units.
+
+---
+
+## Proposed Charge Offer Classes
+
+- The proposed classification specifies a high-level list of what charge offers relate to. Each item in the classification describes a subject that has one or more associated charges.
+- Not all charge offer classifications apply to all units (e.g. some units may not offer separate storage or allow pets). However, when a classification does apply, all charges related to it — including any deposits, monthly rents, optional, or situational charges — are classified together.
+- Classifications carry additional information about limits and maximums that apply to the charges within the class (e.g. a maximum monthly rent for all pets).
+- Individual charge offers carry further information to distinguish charges within the same classification. For example: whether they are mandatory, situational, or optional; whether they may be refundable under some circumstances; payment frequency; the lifecycle stage they apply in; and individual offer limits (e.g. maximum number of pets).
+
+---
+
+## Charge Class Code Enumeration
+
+Each entry is a top-level class code and its description.
+
+- **ACCOUNTING** — Charges related to financial transactions and services provided to tenants. Associated with the processing and management of payments and other financial activities.
+- **ADMIN** — Administrative fees generally covering the costs of preparing the lease, setting up the resident in the property management system, and other logistical aspects of finalizing the lease process. Can sometimes include move-in preparation, such as unit inspections.
+- **AMENITY** — Charges for using shared building amenities, such as fitness centers, swimming pools, clubhouses, rooftop decks, or lounges. Help maintain and manage these facilities.
+- **APPLICATION** — Application fees covering the cost of processing the application, including background checks, credit checks, and verification of income and rental history.
+- **CLEAN** — Fees for cleaning services after a resident moves out, ensuring the apartment is ready for the next resident. Some leases also have cleaning charges during tenancy if certain services are requested.
+- **DAMAGE** — Costs to repair damages to the apartment caused by the resident that go beyond normal wear and tear. May cover repairs to walls, floors, appliances, or fixtures.
+- **GENERAL** — A multipurpose class used to store information and charge offer items that are not charged to prospects or residents.  IMPORTANT: this class cannot hold charge offer items that are can be charged to residents
+- **GOVT** — Charges imposed by a government entity or jurisdiction (e.g. LA-area SCEP fee, Hawaii GET Tax, or Rent Board Fee).
+- **HOLD** — A fee to reserve the unit for the applicant, temporarily holding it off the market until the lease begins.
+- **INSURANCE** — Where a property requires residents to carry renter's insurance and the landlord charges a fee for providing a policy if the resident does not obtain their own. Typically covers resident liability and personal property protection.
+- **KEY** — Fees and deposits for keys, fobs, access cards, or lock changes. Lost keys may incur additional charges; some properties have fees for electronic access systems.
+- **LEASE** — Monthly scheduled rent charges, including any concessions, late rent charges, early payment discounts, etc.
+- **LEGAL** — Charges to cover the landlord's legal expenses when pursuing eviction or other legal actions due to non-compliance with the lease terms.
+- **OTHER** — Other / miscellaneous fees and charges.
+- **PARKING** — Fees for designated parking spaces, covered parking, garages, or visitor parking permits. Prices vary based on the type of parking offered.
+- **PET** — Monthly pet rent, pet deposits, or cleaning fees for residents with pets. Additional charges may apply for damages caused by pets.
+- **SERVICE** — Broadly covers services like trash collection, pest control, common area maintenance, landscaping, or snow removal.
+- **STORAGE** — Fees for storage units, bike storage spaces, or other designated storage areas on the property.
+- **TECH** — Charges for optional internet, cable, or other connectivity services provided by the building. Some apartments bundle these into a technology fee or provide a third-party package option.
+- **TERM** — Fees for breaking a lease before its expiration date. May cover lost rent, re-leasing expenses, and sometimes a specific penalty amount.
+- **TRANSFER** — Fees for residents who wish to transfer to a different unit within the same property. Covers administrative and preparation costs for the new unit.
+- **UPGRADE** — Non-essential / optional improvements or additions to the unit that the tenant can make. For tenant-selected upgrades that go beyond the standard offerings.
+- **UTILITY** — Charges for utilities like electricity, water, gas, and sewer (but not trash — see SERVICE). Some leases include utilities; others bill usage based on direct consumption.
+- **VIOLATION** — Charges imposed due to breaches of lease agreements or noncompliance with property rules and regulations. Intended to address and rectify tenant actions that violate the terms of the lease or community standards. Examples include smoking and package service violations. Some violations may be included under more specific classes instead (e.g. PET).
+- **WAIVER** — Charges incurred in lieu of other charges (e.g. damage protection provider in lieu of security deposit)
+
+---
+
+## Proposed Data Model — Core Hierarchy
+
+The data model allows charges to be specified at any of the Property, Phase, Building, Floorplan, and Unit levels of the asset hierarchy. For each, the list of charges is grouped into classifications first, and then within each classification there is a list of charge offer items. Each charge offer item then has one or more specific offers (which may vary, for example, based on term).
+
+Charge Offer Items specified at a higher level in the hierarchy will be inherited by all related levels lower in the hierarchy (e.g. an "Amenity Fee" specified at the Property level will be inherited by all specified Units that are related in the same Property->Phase->Building->Floorplan->Unit hierarchy)
+
+The three core levels are:
+
+- **Charge Offer Class**
+  - Defines common top-level subjects against which charges can arise.
+  - Describes limits that apply at class level in terms of number of occurrences and charged amounts.
+- **Charge Offer Item**
+  - Defines a specific charge item within a charge class.
+  - Describes the characteristics of the item, including payment frequency, refundability, lifecycle stage, item limits, and basis of amount calculation.
+- **Charge Offer Amount**
+  - Defines a specific monetary offer for an item.
+  - Describes the context in which this specified monetary amount applies, for example the term or duration committed to.
+
+---
+
+## Entity: Charge Offer Class
+
+**Description:** Defines common top-level subjects against which charges can arise, and describes class-level limits.
+
+Attributes (Attribute — Data Type — Description; `*` = required, otherwise optional):
+
+- **Code** `*` — *Charge Class Code (enumeration)* — See Charge Class Code Enumeration (Section 7).
+- **Limits** — *List* — Restricts the maximum number or maximum amount of items that appear in the charge class (e.g. to restrict the total number of storage spaces, or the maximum monthly pet rent).
+    - **Maximum Occurrences** — *Number* — The maximum number of items in the class, or — if `Applies To` or `Characteristics` are specified — the maximum number of items of the specified item types.
+    - **Maximum Amount** — *Monetary Amount* — The maximum total amount of items in the class, or — if `Applies To` or `Characteristics` are specified — the maximum for the specified item types.
+    - **Applies To** — *List* — The specific item types (by `Internal Code`) that this maximum applies to. If omitted, it applies to all internal codes in the class meeting any `Characteristic` constraints.
+        - **Internal Code** — *String* — The internal code of the specific items included in this limit (e.g. `PETDOG`, `PETCAT`).
+    - **Characteristic** — *Element* — The specific characteristics of items included in this limit. Any characteristics not specified are assumed to be allowed any value. If omitted, the limit applies to all characteristics in the class meeting any `Applies To` constraint. (E.g. used to place a maximum monetary amount on non-refundable monthly pet charges, without including deposit items.) Attributes are as defined for Charge Offer Item.
+
+---
+
+## Entity: Charge Offer Item
+
+**Description:** Defines a specific charge item within a charge class and describes its characteristics.
+
+Attributes:
+
+- **Internal Code** — *String* — The internal code, specific to each data publisher.
+- **Name** — *String* — Short name indicating what the charge is for, using the operator's preferred customer-facing language.
+- **Description** — *String* — Description of the charge in the operator's preferred customer-facing language, including what the resident gets for the charge or why they are being charged. May also explain fees that are variable (e.g. what the variability depends upon).
+- **Group** — *String* — Where an operator has a preferred grouping of fees, the customer-facing name of the group under which this fee would preferably be listed.
+- **Characteristics** — *Element* — A set of additional characteristics (metadata) about the charge that make it easier for the resident to see specific charges and allow pricing calculators to treat each charge appropriately. Contains the following sub-attributes:
+  - **Requirement** — *Charge Requirement (enumeration)* — Included, Mandatory, Situational, or Optional.
+  - **Conditional Upon Code** — *List* — If the Charge Requirement is Conditional, the internal code(s) of the Charge Offer Item(s) whose presence (or any one of) triggers the automatic inclusion of this Charge Offer Item.
+    - **Internal Code** — *String* — Charge Offer Item internal code.
+  - **Requirement Description** — *String* — Description of the conditions under which situational or optional charges will be applied.
+  - **Refundability** — *Refundability (enumeration)* — Whether this item is never refunded, expected to be refunded (e.g. a deposit), or possibly refunded (e.g. a hold fee).
+  - **Refundability Max Type** — *Refundability Maximum Type (enumeration)* — Whether the maximum refundable amount is specified as an explicit amount or as a percentage of the amount paid.
+  - **Refundability Max** — *Number* — The maximum monetary amount (if type is amount) or percentage (if type is percentage) of this fee that could be refunded. For percentages, `1` = 100%.
+  - **Refundability Max Per** — *Boolean* — Where a refundability maximum is specified and the item's Amount Per Type is Applicant or Person, specifies whether the refundability max applies per-entity (per applicant / per person) or to the aggregate of all applicants/people.
+  - **Refundability Description** — *String* — Description of the terms that apply to the return of deposits or refunds.
+  - **Lifecycle** — *Lifecycle (enumeration)* — The stage in the lifecycle of the resident's lease that this item relates to.
+  - **Payment Frequency** — *Payment Frequency (enumeration)* — The frequency on which the amounts specified in this item will be payable.
+- **Item Maximum Occurrences** — *Number* — If this item is subject to a maximum, specified here (e.g. limit to one, or a specific number such as pet dogs limited to 2). If omitted, no limit is assumed. If class-level limits are also specified, the lower of the two maximums is used.
+- **Amount Basis** — *Amount Basis (enumeration)* — Explicit Amount, Percentage Of, Stepped, or Within Range.
+- **Percentage Of Code** — *String* — If Amount Basis is Percentage Of, the Internal Code that this item is calculated as a percentage of.
+- **Amount Per Type** — *Amount Per Type (enumeration)* — Specifies what triggers a repeat of this charge. E.g. per Unit means charged once per unit (such as monthly rent); per Person means charged for each person using an item or taking part in an event (such as overnight stay in a guest suite).
+- **Amount Per Period** — *Period Duration (enumeration)* — For fees with an Amount Per Type of Period, the duration of each period.
+- **Applicable To Affordable Units** — *Boolean* — Whether this specific fee applies to units identified as affordable. May be omitted if there are no affordable units in scope.
+- **Third Party Provider** — *Boolean* — Defaults to FALSE. TRUE means the ChargeOfferItem is paid to a provider other than the owner or property management company of the property. FALSE means it is paid to the owner or property management company of the property.
+
+---
+
+## Entity: Charge Offer Amount
+
+**Description:** Defines a specific monetary offer for an item and the context in which it applies.
+
+Attributes:
+
+- **Amounts** — *List of Monetary Amount* — The interpretation depends on Amount Basis:
+  - If Amount Basis is Fixed Amount, the list contains one specific amount.
+  - If Amount Basis is Within Range, the list contains two amounts: the lowest and the highest amount in the range.
+  - If Amount Basis is Stepped, the list contains the amount for each subsequent occurrence (first amount for the first occurrence, second for the second, and so on). If there is no maximum number of occurrences, or the maximum exceeds the number of amounts in the list, the last amount is used for subsequent occurrences.
+  - Negative amounts indicate credits to the customer account (e.g. concessions); positive amounts indicate debits (i.e. charges).
+- **Percentage** — *Number* — If Amount Basis is Percentage Of, the percentage. Negative percentages indicate credits (e.g. concessions); positive percentages indicate debits (charges).
+- **Term Basis** — *Term Basis (enumeration)* — Whole Lease or Specific Term.
+- **Start Term Earliest** — *Date* — If Term Basis is Specific Term, the start date of the specific term, or the earliest date in a range that the Specific Term start date lies. If omitted, any Specific Term start date preceding the Start Term Latest qualifies for this offer.
+- **Start Term Latest** — *Date* — If Term Basis is Specific Term, the latest date in a range that the Specific Term start date lies. If omitted, the term can start any time after Start Term Earliest. If equal to Start Term Earliest, that is the only start date on which this Charge Offer Amount applies.
+- **Duration** — *Number* — The number of periods committed to, where the duration of each period is specified in the corresponding Charge Offer Item's Payment Frequency.
+- **Estimate** — *Boolean* — If true, this amount is an estimate and the actual amount charged could differ.
+- **Estimation Basis** — *String* — For estimated amounts, narratively describes the basis of the estimation (e.g. utility company estimate, or average for the area).
+
+---
+
+## Supporting Enumerations
+
+### Charge Requirement
+- **Included** — This item is included; there is no additional charge. Typically used for items usually chargeable, rather than general amenities.
+- **Mandatory** — This item will be charged in all circumstances.
+- **Situational** — This item will be charged in certain situations (e.g. damage caused by pets, early termination, or late fees).
+- **Optional** — This item is used at the discretion of the resident (e.g. renting a party room or guest suite).
+- **Conditional** — This charge depends on the presence of another (optional) internal code. If the other code is present, this conditional charge is automatically included.
+
+### Refundability
+- **Non-refundable** — This item is not refundable under any circumstances.
+- **Deposit** — This item is expected to be refunded provided the terms are not broken (e.g. a rent security deposit or pet damage deposit).
+- **Refundable** — This item is not expected to be refunded, but may be (fully or partially) in some circumstances.
+
+### Amount Per Type
+- **Item** — The charge applies once in each item or occurrence.
+- **Leaseholder** — The charge applies for each person applying, or — if the application is successful — each person named on the lease.
+- **Person** — The charge applies for each person (e.g. each guest in the guest suite, or each person resident in the unit).
+- **Period** — The charge applies for each period, the duration of which is separately specified (e.g. per day or per quarter).
+
+### Period Duration
+- **Hourly** — One hour.
+- **24h** — Each 24-hour period (e.g. daily or nightly).
+- **Weekly** — One week.
+- **Bi-weekly** — Two weeks.
+- **Monthly** — One month.
+- **Bi-monthly** — Two months.
+- **Quarterly** — One quarter.
+- **Triannually** — Four months.
+- **Semi-annually** — Six months.
+- **Annually** — One year.
+- **Other** — Some other period.
+
+### Term Basis
+- **Whole Lease** — The period for which the offer applies is the same as the term of the lease.
+- **Specific Term** — The period for which the offer applies is expressed as a duration (in months) and a start offset (in months) from the start of the lease.
+
+### Payment Frequency
+- **One-time** — Paid only once.
+- **Per-occurrence** — Paid each time an item is used or an event takes place.
+- **Hourly** — Paid per hour.
+- **24h** — Paid once in each 24-hour period (e.g. daily or nightly).
+- **Weekly** — Paid every week.
+- **Bi-weekly** — Paid every two weeks.
+- **Monthly** — Paid every month.
+- **Bi-monthly** — Paid every two months.
+- **Quarterly** — Paid every quarter.
+- **Triannually** — Paid three times per year.
+- **Semi-annually** — Paid twice per year.
+- **Annually** — Paid once per year.
+- **Other** — Some other payment frequency (see description).
+
+### Lifecycle (aka 'due-at')
+- **Pre-application** — Anything prior to application submission.
+- **At Application** — Application submission.
+- **Approved Future Resident** — Application approved, but not yet moving in.
+- **Move-in** — Associated specifically with the move-in.
+- **During Term** — Within the term of the lease.
+- **Renewal** — Associated specifically with a renewal.
+- **Move-out** — Associated specifically with the move-out.
+- **Past Resident** — Lease now expired and move-out completed.
+- **Transfer** — Associated with a transfer from one unit to another.
+- **Other** — Other, not in any of the above.
+
+### Amount Basis
+- **Explicit** — The amount is specified as an explicit monetary amount.
+- **Percentage Of** — The amount is calculated as a specified percentage of another Charge Offer amount.
+- **Within Range** — The amount will lie within a specified range of monetary amounts.
+- **Stepped** — The amount has specific stepped pricing for the first occurrence of the item and each subsequent occurrence.
+- **Variable** — The amount of the fee varies depending on some other factors (e.g. electricity usage).
+
+### Refundability Max Type
+- **Amount** — The maximum refund of a fee is specified by an explicit monetary amount.
+- **Percentage** — The maximum refund of a fee is specified as a percentage of the fee paid.
+
+---
+
+## Charge Offer Item Specializations
+
+Certain offer items require additional information. This is accomplished by specialized types that are based on the generic Charge Offer Item but that add attributes to fully describe them. When included, these specializations **must** belong to the corresponding Charge Offer Class.
+
+The three specializations of **Charge Offer Item** are:
+- Parking Offer Item
+- Storage Offer Item
+- Pet Offer Item
+
+### Parking Offer Item
+Additional attributes:
+- **Structure Type** — *Parking Type (enumeration)* — Information about the structure that contains the parking.
+- **Size Type** — *Size Type (enumeration)* — The general size of each parking space by reference to the kind of vehicle it is designed to accommodate.
+- **Regular Space** — *Available Reservable (enumeration)* — Whether regular parking (not enhanced with EV or handicapped access) is available, and — if so — whether it is also reservable.
+- **Handicapped** — *Available Reservable (enumeration)* — Whether handicapped parking is available, and — if so — whether it is also reservable.
+- **Electric** — *Available Reservable (enumeration)* — Whether parking spaces with electric vehicle charging points are available, and — if so — whether they are also reservable.
+- **Description** — *String* — A narrative description of the space, including the mix of different types (e.g. "50 spaces in the surface lot, including 5 designated handicapped spaces, and 10 EV charging spaces").
+
+### Storage Offer Item
+Additional attributes:
+- **Storage Type** — *Storage Type (enumeration)*
+- **Storage UoM** — *Unit of Measurement (enumeration)* — The units of measurement used for the dimensions that follow.
+- **Height** — *Decimal* — The internal height of the storage space.
+- **Width** — *Decimal* — The internal width of the storage space.
+- **Length** — *Decimal* — The internal length of the storage space.
+
+### Pet Offer Item
+Additional attributes:
+- **Allowed** — *Yes / No* — Whether the specified type of pet (or all pets if no type is specified) is allowed.
+- **Pet Breed or Type** — *String* — The breed (e.g. Airedale Terrier) or type of pet (e.g. Snake) that this item applies to.
+- **Maximum Size** — *String* — The maximum size of the pet.
+- **Maximum Weight** — *String* — The maximum weight of the pet.
+- **Pet Care** — *Yes / No* — Whether pet care is available at the property.
+
+---
+
+## Specialization Enumerations
+
+### Structure Type (Parking)
+- **Surface Lot** — Uncovered parking, typically at ground level.
+- **Garage Lot** — Parking within a parking structure, usually comprising multiple levels with most or all covered.
+- **Covered Lot** — Parking that is open-sided but has cover above.
+- **Street** — Parking is on the street.
+- **Other**
+- **Garage (attached)** — Parking is in a private garage attached to the unit.
+- **Garage (detached)** — Parking is in a private garage that is separated from the unit.
+- **None** — No parking is available.
+
+### Size Type (Parking)
+- **Motorcycle** — Suitably sized for a motorcycle.
+- **Compact** — Suitably sized for a compact car.
+- **Car** — Suitably sized for a car.
+- **Extended (RV/Boat)** — Suitably sized for an RV, boat, or similar.
+- **Other**
+
+### Storage Type
+- **Bike** — Storage for one bike.
+- **Closet** — A tall cupboard or wardrobe with a door.
+- **Locker** — A small lockable cupboard or compartment attached to the wall or floor.
+- **Other**
+
+### Units of Measurement
+- **Inch** — Measurement specified in inches.
+- **Foot** — Measurement specified in feet.
+- **Yard** — Measurement specified in yards.
+- **Meter** — Measurement specified in meters.
+
+### Available Reservable
+- **None** — This item type is not available.
+- **Available** — This item type is available, but not reservable.
+- **Reservable** — This item type is available and reservable. Indicates entitlement to use any items of the specified type, guaranteed.
+
+Assumptions and Principles
+
+Charge Offer Item hierarchy on file import:
+1. There is a hierarchy of inheritance for Charge Offer Items (COI) that starts at Property => Phase => Building => Floorplan => Unit
+2. "Internal Code" is the unique identifier within a MITS schema
+3. COI's (identified by the Internal Code) at a lower/more detailed level in the hierarchy will take precedence over COI's inherited from higher levels in the hierarchy
+4. However, a COI at a lower level does not replace the COI with the same Internal Code at the higher level.  E.g. a COI for "APPFEE" set at the "Floorplan" level will replace an "APPFEE" set at the "Property" level for that specific floorplan but will not replace the property level APPFEE
+5. Within a list of COI's at any level of the hierarchy, the last entered COI for a given Internal Code will take precedence over earlier COI's with the same Internal Code
+6. The last imported file takes precedence over any prior received file
+7. Each file should be self-contained and all-encompassing meaning that all applicable COI's should be included in each file; any COI previously received but no longer contained within the file should be assumed as no longer applicable and should no longer be displayed.
+8. After applying the above import assumptions, the receiving system should only have 1 COI for each Internal Code at each level of the hierarchy
+9. These hierarchy assumptions do not control the display of COI's at different hierarchy levels, such as displaying a range based on COI values across multiple units, as long as the displayed amounts do not conflict with the above hierarchy assumptions for determining the specific COI amounts at each hierarchy level
